@@ -42,3 +42,17 @@ def pytest_collection_modifyitems(session, config, items):
             break
     if test_index:
         items.insert(0, items.pop(test_index))
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """
+    At the end of the test run, collect journal logs from the machine under test
+    and copy them over to CI WORKSPACE /tmp so they can be collected as artifacts.
+    """
+    log_path = "/tmp/journalctl.log"
+    try:
+        connection.run(f"journalctl --no-pager > {log_path}")
+        get_no_sftp(log_path, connection, local=log_path)
+    except:
+        # it might fail for some board types but that's okay the collection is best effort
+        pass
